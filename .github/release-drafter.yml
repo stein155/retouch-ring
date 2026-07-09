@@ -1,0 +1,27 @@
+name-template: "v$RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+categories:
+  - title: "🚀 Features"
+    labels: ["feature", "enhancement"]
+  - title: "🐛 Bug Fixes"
+    labels: ["fix", "bug"]
+  - title: "🧰 Maintenance"
+    labels: ["chore", "docs", "ci", "dependencies"]
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+change-title-escapes: '\<*_&'
+version-resolver:
+  minor:
+    labels: ["feature", "enhancement"]
+  patch:
+    labels: ["fix", "bug", "chore", "docs", "ci", "dependencies"]
+  default: patch
+template: |
+  ## Changes
+
+  $CHANGES
+
+  ## Install
+
+  This is a **ReTouch plugin**. Install or update it from the speaker's web app:
+  **Settings → Plugins → Ring chime → Install**. ReTouch downloads this release,
+  verifies it against `SHA256SUMS`, and supervises it — no manual copying.

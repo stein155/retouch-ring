@@ -1,0 +1,65 @@
+name: Release
+
+# Cross-compile the armv7l plugin binary and attach it + checksums to the GitHub
+# release, in the exact shape ReTouch's plugin installer expects: the asset
+# `retouch-ring-armv7l` plus `SHA256SUMS` (and, when signing is enabled, a matching
+# `SHA256SUMS.sig`). Runs when a release is published (including a Release Drafter
+# draft), or on demand.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Routed through env so it can be tested in a step `if:` (secrets can't be).
+    env:
+      RELEASE_SIGNING_KEY: ${{ secrets.RELEASE_SIGNING_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.22"
+
+      - name: Cross-compile plugin (armv7l)
+        env:
+          GOOS: linux
+          GOARCH: arm
+          GOARM: "7"
+          CGO_ENABLED: "0"
+        run: go build -trimpath -ldflags "-s -w -X main.version=${{ github.event.release.tag_name || github.ref_name }}" -o retouch-ring-armv7l .
+
+      - name: Checksums
+        run: sha256sum retouch-ring-armv7l > SHA256SUMS
+
+      # Sign the checksums so ReTouch's catalog install can verify authenticity, not
+      # just integrity. Dormant until the RELEASE_SIGNING_KEY secret is set AND the
+      # matching public key is put in ReTouch's catalog entry (internal/plugins.Catalog,
+      # the `ring` entry's PubKey). Until then the plugin is checksum-only / sideloaded.
+      - name: Sign checksums (ed25519)
+        if: ${{ env.RELEASE_SIGNING_KEY != '' }}
+        run: |
+          printf '%s' "$RELEASE_SIGNING_KEY" | base64 -d > ed25519.pem
+          openssl pkeyutl -sign -inkey ed25519.pem -rawin -in SHA256SUMS -out sig.raw
+          base64 -w0 sig.raw > SHA256SUMS.sig
+          rm -f ed25519.pem sig.raw
+
+      - name: Attach binary + checksums to the release
+        # Pinned to a commit SHA: this action holds contents:write, so a retagged
+        # v3 must not be able to silently change what runs in the release job.
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3
+        with:
+          tag_name: ${{ github.event.release.tag_name || github.ref_name }}
+          files: |
+            retouch-ring-armv7l
+            SHA256SUMS
+            SHA256SUMS.sig

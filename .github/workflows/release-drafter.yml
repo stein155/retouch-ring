@@ -1,0 +1,24 @@
+name: Release Drafter
+
+# Keeps a draft release up to date with the changes merged to main, so cutting a
+# release is one click. Publishing that draft triggers release.yml, which builds and
+# attaches the armv7l plugin binary. Runs only on pushes to the default branch — the
+# config must live there, so running on PRs from other branches just errors.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  update_release_draft:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

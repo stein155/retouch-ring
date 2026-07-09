@@ -1,0 +1,4 @@
+build/
+*.tmp
+config.json
+.config.tmp

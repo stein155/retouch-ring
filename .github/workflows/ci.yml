@@ -1,0 +1,32 @@
+name: CI
+
+# Build, vet and test on every push and PR, and confirm the plugin still
+# cross-compiles for the speaker (ARMv7) — the only target that ships.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.22"
+          cache: true
+      - run: go vet ./...
+      - run: go test ./...
+      - name: Cross-compile (armv7l)
+        env:
+          GOOS: linux
+          GOARCH: arm
+          GOARM: "7"
+          CGO_ENABLED: "0"
+        run: go build -trimpath -ldflags "-s -w" -o /dev/null .
+      - run: sh -n build.sh
