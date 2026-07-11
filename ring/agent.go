@@ -227,7 +227,7 @@ func onPush(msg []byte) {
 	if !cfg.NoOled && NotifyFunc != nil {
 		NotifyFunc(kind, devName)
 	}
-	if err := playChime(cfg.Speaker, chime); err != nil {
+	if err := playChime(cfg.Speaker, GainedChime(chime, cfg.Volume)); err != nil {
 		log.Printf("ring: chime failed: %v", err)
 	}
 }

@@ -18,6 +18,7 @@ type Config struct {
 	DingChime    string          `json:"ding_chime"`
 	DebounceSec  int             `json:"debounce_sec"`
 	NoOled       bool            `json:"no_oled,omitempty"`
+	Volume       int             `json:"volume,omitempty"` // chime gain percent; 0 = ring.DefaultVolume
 	Devices      []Device        `json:"devices"`
 	FCM          json.RawMessage `json:"fcm,omitempty"`
 }

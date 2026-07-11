@@ -297,6 +297,11 @@ func (p *Plugin) saveDevices(rows map[string]map[string]bool, values map[string]
 	if v, ok := values["oled"].(bool); ok {
 		p.cfg.NoOled = !v
 	}
+	if s, ok := values["volume"].(string); ok {
+		if n, err := strconv.Atoi(strings.TrimSpace(s)); err == nil && n >= 10 && n <= 200 {
+			p.cfg.Volume = n
+		}
+	}
 	if err := saveConfig(p.cfgPath, p.cfg); err != nil {
 		return Manifest{}, err
 	}
@@ -306,13 +311,13 @@ func (p *Plugin) saveDevices(rows map[string]map[string]bool, values map[string]
 
 func (p *Plugin) testChime() (Manifest, error) {
 	p.mu.Lock()
-	speaker, chime, noOled := p.cfg.Speaker, p.cfg.Chime, p.cfg.NoOled
+	speaker, chime, noOled, volume := p.cfg.Speaker, p.cfg.Chime, p.cfg.NoOled, p.cfg.Volume
 	m := p.manifestLocked()
 	p.mu.Unlock()
 	if !noOled {
 		p.notifyDisplay("ding", "")
 	}
-	if err := playNotification(speaker, chime); err != nil {
+	if err := playNotification(speaker, ring.GainedChime(chime, volume)); err != nil {
 		return Manifest{}, fmt.Errorf("could not play a test chime: %w", err)
 	}
 	return m, nil
