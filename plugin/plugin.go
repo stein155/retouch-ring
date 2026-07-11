@@ -37,6 +37,8 @@ type pendingLogin struct {
 type Plugin struct {
 	cfgPath string
 	speaker string
+	hostURL string
+	hasOLED bool
 	log     *log.Logger
 
 	agentParent context.Context
@@ -44,6 +46,8 @@ type Plugin struct {
 	mu          sync.Mutex
 	cfg         Config
 	pending     *pendingLogin
+	lang        string
+	lastLang    time.Time
 	agentCancel context.CancelFunc
 	agentDone   chan struct{} // closed when superviseAgent returns
 }
@@ -51,16 +55,20 @@ type Plugin struct {
 // New bootstraps the plugin: it loads (or seeds) config.json in cfgDir, writes the
 // bundled chimes there on first run, points the agent at speaker, and — if already
 // logged in — starts the ring agent under ctx.
-func New(ctx context.Context, cfgDir, speaker string, chimes fs.FS, logger *log.Logger) (*Plugin, error) {
+func New(ctx context.Context, cfgDir, speaker, hostURL string, chimes fs.FS, logger *log.Logger) (*Plugin, error) {
 	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
 		return nil, err
 	}
 	p := &Plugin{
 		cfgPath:     filepath.Join(cfgDir, "config.json"),
 		speaker:     speaker,
+		hostURL:     strings.TrimRight(hostURL, "/"),
 		log:         logger,
+		lang:        "en",
 		agentParent: ctx,
 	}
+	p.hasOLED = p.probeDisplay()
+	ring.NotifyFunc = p.notifyDisplay // agent events -> display API notification
 	p.cfg = loadConfig(p.cfgPath)
 	p.cfg.Speaker = speaker // the host tells us where the speaker's API is
 	if p.cfg.HardwareID == "" {
@@ -106,6 +114,7 @@ func (p *Plugin) Handler() http.Handler {
 		writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 	})
 	mux.HandleFunc("GET /manifest", func(w http.ResponseWriter, _ *http.Request) {
+		p.refreshLang()
 		p.mu.Lock()
 		m := p.manifestLocked()
 		p.mu.Unlock()
@@ -121,6 +130,7 @@ type actionBody struct {
 }
 
 func (p *Plugin) handleAction(w http.ResponseWriter, r *http.Request) {
+	p.refreshLang()
 	var body actionBody
 	_ = json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&body)
 	m, err := p.doAction(r.PathValue("id"), body)
@@ -143,7 +153,7 @@ func (p *Plugin) doAction(id string, body actionBody) (Manifest, error) {
 		p.pending = nil
 		return p.manifestLocked(), nil
 	case "save":
-		return p.saveDevices(body.Rows)
+		return p.saveDevices(body.Rows, body.Values)
 	case "refresh":
 		return p.refreshDevices()
 	case "test":
@@ -273,7 +283,7 @@ func (p *Plugin) refreshDevices() (Manifest, error) {
 	return p.manifestLocked(), nil
 }
 
-func (p *Plugin) saveDevices(rows map[string]map[string]bool) (Manifest, error) {
+func (p *Plugin) saveDevices(rows map[string]map[string]bool, values map[string]any) (Manifest, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.reloadLocked()
@@ -284,6 +294,9 @@ func (p *Plugin) saveDevices(rows map[string]map[string]bool) (Manifest, error) 
 			p.cfg.Devices[i].Ding = r["ding"]
 		}
 	}
+	if v, ok := values["oled"].(bool); ok {
+		p.cfg.NoOled = !v
+	}
 	if err := saveConfig(p.cfgPath, p.cfg); err != nil {
 		return Manifest{}, err
 	}
@@ -293,13 +306,52 @@ func (p *Plugin) saveDevices(rows map[string]map[string]bool) (Manifest, error) 
 
 func (p *Plugin) testChime() (Manifest, error) {
 	p.mu.Lock()
-	speaker, chime := p.cfg.Speaker, p.cfg.Chime
+	speaker, chime, noOled := p.cfg.Speaker, p.cfg.Chime, p.cfg.NoOled
 	m := p.manifestLocked()
 	p.mu.Unlock()
+	if !noOled {
+		p.notifyDisplay("ding", "")
+	}
 	if err := playNotification(speaker, chime); err != nil {
 		return Manifest{}, fmt.Errorf("could not play a test chime: %w", err)
 	}
 	return m, nil
+}
+
+// refreshLang syncs the UI language from ReTouch's settings API (cached for a
+// minute); standalone runs keep the default.
+func (p *Plugin) refreshLang() {
+	if p.hostURL == "" {
+		return
+	}
+	p.mu.Lock()
+	stale := time.Since(p.lastLang) > time.Minute
+	p.mu.Unlock()
+	if !stale {
+		return
+	}
+	var s struct {
+		Language string `json:"language"`
+	}
+	c := &http.Client{Timeout: 5 * time.Second}
+	resp, err := c.Get(p.hostURL + "/api/settings")
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+	_ = json.NewDecoder(io.LimitReader(resp.Body, 64<<10)).Decode(&s)
+	p.mu.Lock()
+	if s.Language != "" {
+		p.lang = s.Language
+	}
+	p.lastLang = time.Now()
+	p.mu.Unlock()
+}
+
+func (p *Plugin) language() string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.lang
 }
 
 func (p *Plugin) logout() (Manifest, error) {

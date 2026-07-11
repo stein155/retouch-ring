@@ -17,6 +17,7 @@ type Config struct {
 	Chime        string          `json:"chime"`
 	DingChime    string          `json:"ding_chime"`
 	DebounceSec  int             `json:"debounce_sec"`
+	NoOled       bool            `json:"no_oled,omitempty"`
 	Devices      []Device        `json:"devices"`
 	FCM          json.RawMessage `json:"fcm,omitempty"`
 }
