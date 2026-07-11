@@ -38,7 +38,7 @@ func main() {
 	speaker := flagOr("--speaker-host", "127.0.0.1:8090")
 	cfgDir := flagOr("--config-dir", "/mnt/nv/retouch/plugins/ring")
 	listen := flagOr("--listen", "127.0.0.1:9101")
-	_ = flagOr("--host-url", "") // reserved: ReTouch base URL for future callbacks
+	hostURL := flagOr("--host-url", "") // ReTouch base URL; used to follow its UI language
 
 	logger := log.New(os.Stderr, "ring: ", log.LstdFlags)
 	logger.Printf("retouch-ring %s starting", version)
@@ -67,7 +67,7 @@ func main() {
 		}()
 	}
 
-	p, err := plugin.New(ctx, cfgDir, speaker, chimes, logger)
+	p, err := plugin.New(ctx, cfgDir, speaker, hostURL, chimes, logger)
 	if err != nil {
 		logger.Fatalf("start: %v", err)
 	}

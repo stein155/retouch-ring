@@ -1,6 +1,10 @@
 package plugin
 
-import "strconv"
+import (
+	"strconv"
+
+	"github.com/stein155/retouch-ring/ring"
+)
 
 // The manifest is the server-driven settings UI ReTouch renders. GET /manifest
 // returns the current state; POST /action/{id} performs an action and returns the
@@ -63,16 +67,17 @@ type Action struct {
 
 // manifest builds the current UI from plugin state. Caller must hold p.mu.
 func (p *Plugin) manifestLocked() Manifest {
+	lang := p.lang
 	if p.pending != nil {
 		return Manifest{
 			Title:  "Ring chime",
-			Status: &Status{Level: "warn", Text: "Enter the code Ring just sent" + phoneSuffix(p.pending.phone)},
+			Status: &Status{Level: "warn", Text: ring.Tr(lang, "status.2fa") + phoneSuffix(lang, p.pending.phone)},
 			Sections: []Section{{
-				Title:  "Two-factor code",
-				Fields: []Field{{Key: "code", Label: "Verification code", Type: "otp", Placeholder: "123456"}},
+				Title:  ring.Tr(lang, "section.2fa"),
+				Fields: []Field{{Key: "code", Label: ring.Tr(lang, "field.code"), Type: "otp", Placeholder: "123456"}},
 				Actions: []Action{
-					{ID: "verify", Label: "Verify", Style: "primary"},
-					{ID: "cancel", Label: "Cancel"},
+					{ID: "verify", Label: ring.Tr(lang, "action.verify"), Style: "primary"},
+					{ID: "cancel", Label: ring.Tr(lang, "action.cancel")},
 				},
 			}},
 		}
@@ -80,15 +85,15 @@ func (p *Plugin) manifestLocked() Manifest {
 	if p.cfg.RefreshToken == "" {
 		return Manifest{
 			Title:  "Ring chime",
-			Status: &Status{Level: "idle", Text: "Not connected to Ring"},
+			Status: &Status{Level: "idle", Text: ring.Tr(lang, "status.notconn")},
 			Sections: []Section{{
-				Title: "Ring account",
-				Text:  "Log in with your Ring email and password. If your account has two-factor authentication, you'll be asked for a code next.",
+				Title: ring.Tr(lang, "section.account"),
+				Text:  ring.Tr(lang, "text.login"),
 				Fields: []Field{
-					{Key: "email", Label: "Email", Type: "text", Placeholder: "you@example.com"},
-					{Key: "password", Label: "Password", Type: "password"},
+					{Key: "email", Label: ring.Tr(lang, "field.email"), Type: "text", Placeholder: "you@example.com"},
+					{Key: "password", Label: ring.Tr(lang, "field.password"), Type: "password"},
 				},
-				Actions: []Action{{ID: "login", Label: "Log in", Style: "primary"}},
+				Actions: []Action{{ID: "login", Label: ring.Tr(lang, "action.login"), Style: "primary"}},
 			}},
 		}
 	}
@@ -99,34 +104,41 @@ func (p *Plugin) manifestLocked() Manifest {
 			ID:    strconv.FormatInt(d.ID, 10),
 			Label: d.Name,
 			Toggles: []RowToggle{
-				{Key: "motion", Label: "Motion", Value: d.Motion},
-				{Key: "ding", Label: "Doorbell", Value: d.Ding},
+				{Key: "motion", Label: ring.Tr(lang, "toggle.motion"), Value: d.Motion},
+				{Key: "ding", Label: ring.Tr(lang, "toggle.ding"), Value: d.Ding},
 			},
 		})
 	}
 	devSection := Section{
-		Title:   "Devices",
-		Text:    "Choose which Ring devices chime, and for what.",
+		Title:   ring.Tr(lang, "section.devices"),
+		Text:    ring.Tr(lang, "text.devices"),
 		Rows:    rows,
-		Actions: []Action{{ID: "save", Label: "Save", Style: "primary"}, {ID: "test", Label: "Test chime"}},
+		Actions: []Action{{ID: "save", Label: ring.Tr(lang, "action.save"), Style: "primary"}, {ID: "test", Label: ring.Tr(lang, "action.test")}},
+	}
+	if ring.OledAvailable() {
+		// The bell/motion notification on the ST20 front panel; hidden on models
+		// without the framebuffer, where it would be a dead switch.
+		devSection.Fields = append(devSection.Fields, Field{
+			Key: "oled", Label: ring.Tr(lang, "field.oled"), Type: "toggle", Value: !p.cfg.NoOled,
+		})
 	}
 	if len(rows) == 0 {
-		devSection.Text = "No Ring devices found on this account."
-		devSection.Actions = []Action{{ID: "refresh", Label: "Refresh devices", Style: "primary"}, {ID: "test", Label: "Test chime"}}
+		devSection.Text = ring.Tr(lang, "text.nodevices")
+		devSection.Actions = []Action{{ID: "refresh", Label: ring.Tr(lang, "action.refresh"), Style: "primary"}, {ID: "test", Label: ring.Tr(lang, "action.test")}}
 	}
 	return Manifest{
 		Title:  "Ring chime",
-		Status: &Status{Level: "ok", Text: "Connected to Ring"},
+		Status: &Status{Level: "ok", Text: ring.Tr(lang, "status.connected")},
 		Sections: []Section{
 			devSection,
-			{Title: "Account", Actions: []Action{{ID: "logout", Label: "Log out", Style: "danger", Confirm: "Disconnect this speaker from Ring?"}}},
+			{Title: ring.Tr(lang, "section.acct"), Actions: []Action{{ID: "logout", Label: ring.Tr(lang, "action.logout"), Style: "danger", Confirm: ring.Tr(lang, "confirm.logout")}}},
 		},
 	}
 }
 
-func phoneSuffix(phone string) string {
+func phoneSuffix(lang, phone string) string {
 	if phone == "" {
 		return "."
 	}
-	return " to " + phone + "."
+	return ring.Tr(lang, "2fa.to", phone)
 }

@@ -197,6 +197,7 @@ func onPush(msg []byte) {
 	// Per-device gating. Empty Devices = chime for everything (back-compat). With a list,
 	// the event must come from a listed device with that event enabled. If the device id
 	// can't be parsed we ALLOW (never go silent on a parse miss) and log it loudly.
+	devName := ""
 	if len(cfg.Devices) > 0 {
 		if id, ok := pushDeviceID(body); ok {
 			rule := findDevice(id)
@@ -208,6 +209,7 @@ func onPush(msg []byte) {
 				log.Printf("ring: %s from %s (%d) — disabled for this device, no chime", kind, rule.Name, id)
 				return
 			}
+			devName = rule.Name
 		} else {
 			log.Printf("ring: WARNING could not parse device id from push; allowing %s", kind)
 		}
@@ -222,6 +224,9 @@ func onPush(msg []byte) {
 	}
 
 	log.Printf("ring: %s -> chime %q", kind, chime)
+	if !cfg.NoOled {
+		ShowEvent(LangFunc(), kind, devName)
+	}
 	if err := playChime(cfg.Speaker, chime); err != nil {
 		log.Printf("ring: chime failed: %v", err)
 	}
