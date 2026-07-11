@@ -14,9 +14,9 @@ import (
 // initial email/password (+2FA) login lives here so the whole flow can run from the
 // web UI instead of a separate ring-auth CLI. Values mirror ring-client-api.
 const (
-	ringOAuthURL  = "https://oauth.ring.com/oauth/token"
+	ringOAuthURL   = "https://oauth.ring.com/oauth/token"
 	ringDevicesURL = "https://api.ring.com/clients_api/ring_devices"
-	ringUA        = "android:com.ringapp"
+	ringUA         = "android:com.ringapp"
 )
 
 var authHTTP = &http.Client{Timeout: 30 * time.Second}

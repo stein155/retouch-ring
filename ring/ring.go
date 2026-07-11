@@ -14,11 +14,11 @@ var errMissingToken = errors.New("config missing refresh_token/hardware_id — r
 
 // Ring consumer-API constants (reverse-engineered; same values ring-client-api uses).
 const (
-	ringOAuthURL   = "https://oauth.ring.com/oauth/token"
-	ringSessionURL = "https://api.ring.com/clients_api/session"
-	ringDeviceURL  = "https://api.ring.com/clients_api/device"
-	ringUA         = "android:com.ringapp"
-	ringAPIVersion = 11
+	ringOAuthURL    = "https://oauth.ring.com/oauth/token"
+	ringSessionURL  = "https://api.ring.com/clients_api/session"
+	ringDeviceURL   = "https://api.ring.com/clients_api/device"
+	ringUA          = "android:com.ringapp"
+	ringAPIVersion  = 11
 	ringDeviceModel = "soundtouch-ring"
 
 	// Firebase/FCM app identity Ring registers push under.
@@ -85,7 +85,7 @@ func ringCreateSession(access string) error {
 	req, _ := http.NewRequest(http.MethodPost, ringSessionURL, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+access)
-	req.Header.Set("User-Agent", ringUA)      // ring-client-api sets these on every request
+	req.Header.Set("User-Agent", ringUA) // ring-client-api sets these on every request
 	req.Header.Set("hardware_id", cfg.HardwareID)
 	resp, err := httpc.Do(req)
 	if err != nil {

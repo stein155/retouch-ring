@@ -115,7 +115,7 @@ func (p *Plugin) manifestLocked() Manifest {
 		Rows:    rows,
 		Actions: []Action{{ID: "save", Label: ring.Tr(lang, "action.save"), Style: "primary"}, {ID: "test", Label: ring.Tr(lang, "action.test")}},
 	}
-	if ring.OledAvailable() {
+	if p.hasOLED {
 		// The bell/motion notification on the ST20 front panel; hidden on models
 		// without the framebuffer, where it would be a dead switch.
 		devSection.Fields = append(devSection.Fields, Field{

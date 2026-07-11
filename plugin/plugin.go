@@ -38,6 +38,7 @@ type Plugin struct {
 	cfgPath string
 	speaker string
 	hostURL string
+	hasOLED bool
 	log     *log.Logger
 
 	agentParent context.Context
@@ -66,7 +67,8 @@ func New(ctx context.Context, cfgDir, speaker, hostURL string, chimes fs.FS, log
 		lang:        "en",
 		agentParent: ctx,
 	}
-	ring.LangFunc = p.language // the agent's OLED texts follow ReTouch's UI language
+	p.hasOLED = p.probeDisplay()
+	ring.NotifyFunc = p.notifyDisplay // agent events -> display API notification
 	p.cfg = loadConfig(p.cfgPath)
 	p.cfg.Speaker = speaker // the host tells us where the speaker's API is
 	if p.cfg.HardwareID == "" {
@@ -308,7 +310,7 @@ func (p *Plugin) testChime() (Manifest, error) {
 	m := p.manifestLocked()
 	p.mu.Unlock()
 	if !noOled {
-		ring.ShowEvent(p.language(), "ding", "")
+		p.notifyDisplay("ding", "")
 	}
 	if err := playNotification(speaker, chime); err != nil {
 		return Manifest{}, fmt.Errorf("could not play a test chime: %w", err)

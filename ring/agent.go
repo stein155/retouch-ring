@@ -224,8 +224,8 @@ func onPush(msg []byte) {
 	}
 
 	log.Printf("ring: %s -> chime %q", kind, chime)
-	if !cfg.NoOled {
-		ShowEvent(LangFunc(), kind, devName)
+	if !cfg.NoOled && NotifyFunc != nil {
+		NotifyFunc(kind, devName)
 	}
 	if err := playChime(cfg.Speaker, chime); err != nil {
 		log.Printf("ring: chime failed: %v", err)
