@@ -209,8 +209,8 @@ func (IqStanza_IqType) EnumDescriptor() ([]byte, []int) {
 	return file_proto_mcs_proto_rawDescGZIP(), []int{12, 0}
 }
 
-//*
-//TAG: 0
+// *
+// TAG: 0
 type HeartbeatPing struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -274,8 +274,8 @@ func (x *HeartbeatPing) GetStatus() int64 {
 	return 0
 }
 
-//*
-//TAG: 1
+// *
+// TAG: 1
 type HeartbeatAck struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -694,8 +694,8 @@ func (x *ClientEvent) GetTimeConnectionEstablishedMs() uint64 {
 	return 0
 }
 
-//*
-//TAG: 2
+// *
+// TAG: 2
 type LoginRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -882,7 +882,7 @@ func (x *LoginRequest) GetClientEvent() []*ClientEvent {
 	return nil
 }
 
-//*
+// *
 // TAG: 3
 type LoginResponse struct {
 	state         protoimpl.MessageState
@@ -1046,7 +1046,7 @@ func (x *StreamErrorStanza) GetText() string {
 	return ""
 }
 
-//*
+// *
 // TAG: 4
 type Close struct {
 	state         protoimpl.MessageState
@@ -1143,7 +1143,7 @@ func (x *Extension) GetData() []byte {
 	return nil
 }
 
-//*
+// *
 // TAG: 7
 // IqRequest must contain a single extension.  IqResponse may contain 0 or 1
 // extensions.
@@ -1338,7 +1338,7 @@ func (x *AppData) GetValue() string {
 	return ""
 }
 
-//*
+// *
 // TAG: 8
 type DataMessageStanza struct {
 	state         protoimpl.MessageState
@@ -1545,9 +1545,9 @@ func (x *DataMessageStanza) GetImmediateAck() bool {
 	return false
 }
 
-//*
-//Included in IQ with ID 13, sent from client or server after 10 unconfirmed
-//messages.
+// *
+// Included in IQ with ID 13, sent from client or server after 10 unconfirmed
+// messages.
 type StreamAck struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
@@ -1586,8 +1586,8 @@ func (*StreamAck) Descriptor() ([]byte, []int) {
 	return file_proto_mcs_proto_rawDescGZIP(), []int{15}
 }
 
-//*
-//Included in IQ sent after LoginResponse from server with ID 12.
+// *
+// Included in IQ sent after LoginResponse from server with ID 12.
 type SelectiveAck struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache

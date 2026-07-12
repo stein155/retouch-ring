@@ -27,7 +27,7 @@ import (
 	"github.com/stein155/retouch-ring/plugin"
 )
 
-//go:embed assets/shine.pcm assets/doorbell.pcm
+//go:embed assets/shine.mp3 assets/doorbell.mp3
 var chimes embed.FS
 
 // version is stamped at build time via -ldflags "-X main.version=<tag>" (see the

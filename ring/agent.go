@@ -1,7 +1,8 @@
 // Package ring is the SoundTouch-as-Ring-chime agent, decoupled from any host program.
-// It listens for Ring motion via FCM push and plays a ducked chime through the speaker's
-// /playNotification endpoint. Start it from a standalone main, or register it as a
-// background service inside another single-runtime binary (e.g. retouch) to save RAM.
+// It listens for Ring motion via FCM push and plays a ducked chime through ReTouch's
+// audio-notification API (POST /api/speaker/notify, which drives the speaker's /speaker
+// endpoint). Start it from a standalone main, or register it as a background service
+// inside another single-runtime binary (e.g. retouch) to save RAM.
 package ring
 
 import (
@@ -227,7 +228,7 @@ func onPush(msg []byte) {
 	if !cfg.NoOled && NotifyFunc != nil {
 		NotifyFunc(kind, devName)
 	}
-	if err := playChime(cfg.Speaker, GainedChime(chime, cfg.Volume)); err != nil {
+	if err := PlayChime(cfg.HostURL, chime, cfg.Volume, devName); err != nil {
 		log.Printf("ring: chime failed: %v", err)
 	}
 }

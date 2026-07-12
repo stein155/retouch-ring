@@ -70,16 +70,21 @@ func New(ctx context.Context, cfgDir, speaker, hostURL string, chimes fs.FS, log
 	p.hasOLED = p.probeDisplay()
 	ring.NotifyFunc = p.notifyDisplay // agent events -> display API notification
 	p.cfg = loadConfig(p.cfgPath)
-	p.cfg.Speaker = speaker // the host tells us where the speaker's API is
+	p.cfg.Speaker = speaker   // the host tells us where the speaker's API is
+	p.cfg.HostURL = p.hostURL // and where to play chimes (ReTouch's /api/speaker/notify)
 	if p.cfg.HardwareID == "" {
 		p.cfg.HardwareID = newHardwareID()
 	}
 	if p.cfg.DebounceSec == 0 {
 		p.cfg.DebounceSec = 15
 	}
-	// Ship the chimes into the config dir so playback has a real file to point at.
-	p.cfg.Chime = ensureChime(chimes, cfgDir, "shine.pcm", p.cfg.Chime)
-	p.cfg.DingChime = ensureChime(chimes, cfgDir, "doorbell.pcm", p.cfg.DingChime)
+	// Older installs stored headerless PCM chimes for the firmware's /playNotification
+	// endpoint; /speaker plays real audio files, so drop any .pcm path and re-seed mp3.
+	p.cfg.Chime = dropPCM(p.cfg.Chime)
+	p.cfg.DingChime = dropPCM(p.cfg.DingChime)
+	// Ship the chimes into the config dir so playback has a real file to upload.
+	p.cfg.Chime = ensureChime(chimes, cfgDir, "shine.mp3", p.cfg.Chime)
+	p.cfg.DingChime = ensureChime(chimes, cfgDir, "doorbell.mp3", p.cfg.DingChime)
 	if err := saveConfig(p.cfgPath, p.cfg); err != nil {
 		return nil, err
 	}
@@ -105,6 +110,15 @@ func ensureChime(chimes fs.FS, dir, name, existing string) string {
 	}
 	_ = os.WriteFile(dst, b, 0o644)
 	return dst
+}
+
+// dropPCM clears a legacy headerless-PCM chime path (from the old /playNotification
+// era) so ensureChime re-seeds the bundled mp3; other paths pass through untouched.
+func dropPCM(path string) string {
+	if strings.HasSuffix(path, ".pcm") {
+		return ""
+	}
+	return path
 }
 
 // Handler returns the plugin's loopback HTTP API.
@@ -215,6 +229,7 @@ func (p *Plugin) reloadLocked() {
 		fresh.HardwareID = p.cfg.HardwareID
 	}
 	fresh.Speaker = p.speaker
+	fresh.HostURL = p.hostURL
 	if fresh.Chime == "" {
 		fresh.Chime = p.cfg.Chime
 	}
@@ -311,13 +326,13 @@ func (p *Plugin) saveDevices(rows map[string]map[string]bool, values map[string]
 
 func (p *Plugin) testChime() (Manifest, error) {
 	p.mu.Lock()
-	speaker, chime, noOled, volume := p.cfg.Speaker, p.cfg.Chime, p.cfg.NoOled, p.cfg.Volume
+	chime, noOled, volume := p.cfg.Chime, p.cfg.NoOled, p.cfg.Volume
 	m := p.manifestLocked()
 	p.mu.Unlock()
 	if !noOled {
 		p.notifyDisplay("ding", "")
 	}
-	if err := playNotification(speaker, ring.GainedChime(chime, volume)); err != nil {
+	if err := ring.PlayChime(p.hostURL, chime, volume, "Test"); err != nil {
 		return Manifest{}, fmt.Errorf("could not play a test chime: %w", err)
 	}
 	return m, nil
@@ -454,24 +469,6 @@ func mergeDevices(existing, fetched []Device) []Device {
 		return existing // a failed refresh shouldn't wipe known devices
 	}
 	return out
-}
-
-// playNotification triggers the speaker's ducked-notification playback of a local
-// PCM file — the same firmware path the ring agent uses for a real chime.
-func playNotification(speaker, chime string) error {
-	xml := `<audioSource pathToFile="` + chime + `"/>`
-	req, _ := http.NewRequest(http.MethodPost, "http://"+speaker+"/playNotification", strings.NewReader(xml))
-	req.Header.Set("Content-Type", "application/xml")
-	c := &http.Client{Timeout: 10 * time.Second}
-	resp, err := c.Do(req)
-	if err != nil {
-		return err
-	}
-	_ = resp.Body.Close()
-	if resp.StatusCode >= 300 {
-		return fmt.Errorf("speaker returned HTTP %d", resp.StatusCode)
-	}
-	return nil
 }
 
 func str(v any) string {

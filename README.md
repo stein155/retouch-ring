@@ -51,7 +51,7 @@ main.go        plugin flag contract + HTTP server + small-RAM runtime tuning
 plugin/        the ReTouch adapter: manifest, Ring auth (email/pw/2FA), agent supervision
 ring/          the Ring/FCM chime agent (FCM push listen + SoundTouch playback)
 internal/fcm/  vendored FCM push receiver (patched go-fcm-receiver; see its README)
-assets/        bundled PCM chimes, embedded and written into the config dir on first run
+assets/        bundled mp3 chimes, embedded and written into the config dir on first run
 build.sh       Docker build -> build/retouch-ring-armv7l + SHA256SUMS
 .github/       CI (build/vet/test) + Release Drafter + release workflow
 ```
