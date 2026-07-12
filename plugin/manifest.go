@@ -34,13 +34,19 @@ type Section struct {
 	Actions []Action `json:"actions,omitempty"`
 }
 
-// Field is a single input. Type is text|password|number|otp|toggle.
+// Field is a single input. Type is text|password|number|otp|toggle|slider.
 type Field struct {
 	Key         string `json:"key"`
 	Label       string `json:"label"`
 	Type        string `json:"type"`
 	Value       any    `json:"value,omitempty"`
 	Placeholder string `json:"placeholder,omitempty"`
+	// For type "slider". Older ReTouch hosts render unknown field types as a
+	// text input, so the field degrades to a free-form number.
+	Min  int    `json:"min,omitempty"`
+	Max  int    `json:"max,omitempty"`
+	Step int    `json:"step,omitempty"`
+	Unit string `json:"unit,omitempty"`
 }
 
 // Row is a labelled line with one or more toggles — e.g. a device with Motion/Doorbell.
@@ -109,10 +115,20 @@ func (p *Plugin) manifestLocked() Manifest {
 			},
 		})
 	}
+	// Chime gain; 0 in the config means "unset", played at ring.DefaultVolume.
+	// Sent as a string: saveDevices round-trips inputs as strings, and the old
+	// text renderer shows it the same way.
+	volume := p.cfg.Volume
+	if volume <= 0 {
+		volume = ring.DefaultVolume
+	}
 	devSection := Section{
-		Title:   ring.Tr(lang, "section.devices"),
-		Text:    ring.Tr(lang, "text.devices"),
-		Rows:    rows,
+		Title: ring.Tr(lang, "section.devices"),
+		Text:  ring.Tr(lang, "text.devices"),
+		Rows:  rows,
+		Fields: []Field{
+			{Key: "volume", Label: ring.Tr(lang, "field.volume"), Type: "slider", Value: strconv.Itoa(volume), Min: 10, Max: 100, Step: 5, Unit: "%"},
+		},
 		Actions: []Action{{ID: "save", Label: ring.Tr(lang, "action.save"), Style: "primary"}, {ID: "test", Label: ring.Tr(lang, "action.test")}},
 	}
 	if p.hasOLED {

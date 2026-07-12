@@ -21,6 +21,7 @@ type Config struct {
 	DeviceID    int64  `json:"device_id"`         // deprecated, superseded by Devices; kept for old configs
 	DebounceSec int    `json:"debounce_sec"`      // min seconds between chimes
 	NoOled      bool   `json:"no_oled,omitempty"` // suppress the ST20 OLED notification (default: show)
+	Volume      int    `json:"volume,omitempty"`  // chime gain percent; 0 = DefaultVolume (30)
 
 	// Devices gates which Ring devices chime, and for what. Empty = every device, both
 	// events (back-compat). Non-empty = only listed devices, only their enabled events.
