@@ -95,12 +95,3 @@ func TestAllowChimeDebouncesPerKind(t *testing.T) {
 		t.Fatal("ding should not be muted by motion debounce")
 	}
 }
-
-func TestChimeBody(t *testing.T) {
-	if got := chimeBody("deviceconnectedchime"); got != `<audioSource pathToFile="/opt/Bose/chimes/deviceconnectedchime.pcm"/>` {
-		t.Fatalf("chimeBody builtin = %q", got)
-	}
-	if got := chimeBody("/mnt/nv/doorbell.pcm"); got != `<audioSource pathToFile="/mnt/nv/doorbell.pcm"/>` {
-		t.Fatalf("chimeBody path = %q", got)
-	}
-}

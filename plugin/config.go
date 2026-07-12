@@ -14,11 +14,12 @@ type Config struct {
 	RefreshToken string          `json:"refresh_token"`
 	HardwareID   string          `json:"hardware_id"`
 	Speaker      string          `json:"speaker"`
+	HostURL      string          `json:"host_url"` // ReTouch base URL; where the agent plays chimes
 	Chime        string          `json:"chime"`
 	DingChime    string          `json:"ding_chime"`
 	DebounceSec  int             `json:"debounce_sec"`
 	NoOled       bool            `json:"no_oled,omitempty"`
-	Volume       int             `json:"volume,omitempty"` // chime gain percent; 0 = ring.DefaultVolume
+	Volume       int             `json:"volume,omitempty"` // chime volume (10–70); 0 = ring.DefaultVolume
 	Devices      []Device        `json:"devices"`
 	FCM          json.RawMessage `json:"fcm,omitempty"`
 }
