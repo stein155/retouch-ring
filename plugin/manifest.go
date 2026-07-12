@@ -127,7 +127,7 @@ func (p *Plugin) manifestLocked() Manifest {
 		Text:  ring.Tr(lang, "text.devices"),
 		Rows:  rows,
 		Fields: []Field{
-			{Key: "volume", Label: ring.Tr(lang, "field.volume"), Type: "slider", Value: strconv.Itoa(volume), Min: 10, Max: 200, Step: 5, Unit: "%"},
+			{Key: "volume", Label: ring.Tr(lang, "field.volume"), Type: "slider", Value: strconv.Itoa(volume), Min: 10, Max: 100, Step: 5, Unit: "%"},
 		},
 		Actions: []Action{{ID: "save", Label: ring.Tr(lang, "action.save"), Style: "primary"}, {ID: "test", Label: ring.Tr(lang, "action.test")}},
 	}

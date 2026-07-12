@@ -298,7 +298,7 @@ func (p *Plugin) saveDevices(rows map[string]map[string]bool, values map[string]
 		p.cfg.NoOled = !v
 	}
 	if s, ok := values["volume"].(string); ok {
-		if n, err := strconv.Atoi(strings.TrimSpace(s)); err == nil && n >= 10 && n <= 200 {
+		if n, err := strconv.Atoi(strings.TrimSpace(s)); err == nil && n >= 10 && n <= 100 {
 			p.cfg.Volume = n
 		}
 	}
